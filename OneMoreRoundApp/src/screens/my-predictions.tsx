@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { getLastPredictions, getAllPredictions } from '../services/PredictionDB';
-import { Card, Title, Paragraph } from 'react-native-paper';
+import { ScrollView, Text } from 'react-native';
+import { Card, Paragraph, Title } from 'react-native-paper';
+import { getAllPredictions, getLastPredictions } from '../services/PredictionStorage';
 
 export default function MyPredictionsScreen() {
   const [lastPredictions, setLastPredictions] = useState([]);

@@ -32,11 +32,11 @@ export default function HomeScreen() {
           One More Round
         </Title>
         <View style={{ marginBottom: 24 }}>
-          <TouchableOpacity onPress={() => router.push('/upcoming-fights')}>
+          <TouchableOpacity onPress={() => router.push('/upcoming-events')}>
             <Card style={{ marginBottom: 12, elevation: 2 }}>
               <Card.Content>
-                <Title>Upcoming Fights</Title>
-                <Paragraph>See the schedule of upcoming boxing matches.</Paragraph>
+                <Title>Upcoming Events</Title>
+                <Paragraph>See the schedule of upcoming boxing events with filters.</Paragraph>
               </Card.Content>
             </Card>
           </TouchableOpacity>

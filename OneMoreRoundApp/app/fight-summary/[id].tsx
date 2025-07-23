@@ -1,45 +1,49 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Button, Card, Paragraph, RadioButton, Text, Title } from 'react-native-paper';
-import DataService from '../../src/services/DataService';
-import { addPrediction, initPredictionTable } from '../../src/services/PredictionDB';
+// import DataService from '../../src/services/DataService';
+import { addPrediction } from '../../src/services/PredictionStorage';
 
 export default function FightSummaryScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
-  const fight = DataService.getFightById(id);
-  // Table initialization now happens once in App.js
+  const { event: eventParam } = useLocalSearchParams();
+  let fight: any = null;
+  try {
+    fight = eventParam ? JSON.parse(eventParam as string) : null;
+  } catch {
+    fight = null;
+  }
   if (!fight) {
     return (
       <View style={styles.container}>
         <Title style={styles.title}>Fight not found</Title>
-        <Paragraph>Invalid fight ID.</Paragraph>
+        <Paragraph>Invalid fight data.</Paragraph>
       </View>
     );
   }
-  const boxer1 = DataService.getBoxerById(fight.boxer1Id);
-  const boxer2 = DataService.getBoxerById(fight.boxer2Id);
-  if (!boxer1 || !boxer2) {
-    return (
-      <View style={styles.container}>
-        <Title style={styles.title}>Boxer not found</Title>
-        <Paragraph>Invalid boxer ID.</Paragraph>
-      </View>
-    );
-  }
-  const [selectedWinner, setSelectedWinner] = useState(fight.boxer1Id);
+  const boxer1 = fight.fighters?.fighter_1 || {};
+  const boxer2 = fight.fighters?.fighter_2 || {};
+  const [selectedWinner, setSelectedWinner] = useState(boxer1.fighter_id || boxer1.id);
   const [method, setMethod] = useState('KO');
+
+  // Handler to navigate to boxer profile
+  const handleViewProfile = (boxer: any) => {
+    router.push({
+      pathname: '/boxer-profile/[id]',
+      params: { id: boxer.fighter_id || boxer.id, boxer: JSON.stringify(boxer) }
+    });
+  };
 
   const handlePrediction = async () => {
     try {
       await addPrediction({
-        fight: `${fight.boxer1} vs ${fight.boxer2}`,
-        pick: selectedWinner === boxer1.id ? boxer1.name : boxer2.name,
+        fight: `${boxer1.full_name || boxer1.name} vs ${boxer2.full_name || boxer2.name}`,
+        pick: selectedWinner === (boxer1.fighter_id || boxer1.id) ? (boxer1.full_name || boxer1.name) : (boxer2.full_name || boxer2.name),
         method,
-        result: '', // result will be updated later
+        result: '',
       });
-      alert(`Prediction saved: ${selectedWinner === boxer1.id ? boxer1.name : boxer2.name} by ${method}`);
+      alert(`Prediction saved: ${selectedWinner === (boxer1.fighter_id || boxer1.id) ? (boxer1.full_name || boxer1.name) : (boxer2.full_name || boxer2.name)} by ${method}`);
     } catch (e) {
       alert('Failed to save prediction');
     }
@@ -50,41 +54,31 @@ export default function FightSummaryScreen() {
       <Title style={styles.title}>Fight Summary</Title>
       <Card style={styles.card}>
         <Card.Content>
-          <Title>{fight.boxer1} vs {fight.boxer2}</Title>
+          <Title>
+            <Text style={styles.link} onPress={() => handleViewProfile(boxer1)}>
+              {boxer1.full_name || boxer1.name}
+            </Text>
+            {' vs '}
+            <Text style={styles.link} onPress={() => handleViewProfile(boxer2)}>
+              {boxer2.full_name || boxer2.name}
+            </Text>
+          </Title>
           <Paragraph>Date: {fight.date}</Paragraph>
           <Paragraph>Location: {fight.location}</Paragraph>
+          <Paragraph>Status: {fight.status}</Paragraph>
+          <Paragraph>Scheduled Rounds: {fight.scheduled_rounds}</Paragraph>
+          <Paragraph>Division: {fight.division?.name} ({fight.division?.weight_lb} lbs)</Paragraph>
         </Card.Content>
       </Card>
-      <View style={styles.statsRow}>
-        <TouchableOpacity style={styles.statsCardWrapper} onPress={() => router.push({ pathname: '/boxer-profile/[id]', params: { id: boxer1.id } })}>
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>{boxer1.name}</Title>
-              <Paragraph>Wins: {boxer1.wins}</Paragraph>
-              <Paragraph>Losses: {boxer1.losses}</Paragraph>
-              <Paragraph>{boxer1.bio}</Paragraph>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.statsCardWrapper} onPress={() => router.push({ pathname: '/boxer-profile/[id]', params: { id: boxer2.id } })}>
-          <Card style={styles.statsCard}>
-            <Card.Content>
-              <Title>{boxer2.name}</Title>
-              <Paragraph>Wins: {boxer2.wins}</Paragraph>
-              <Paragraph>Losses: {boxer2.losses}</Paragraph>
-              <Paragraph>{boxer2.bio}</Paragraph>
-            </Card.Content>
-          </Card>
-        </TouchableOpacity>
-      </View>
+
       <View style={styles.selectionContainer}>
         <Title style={styles.selectTitle}>Who will win?</Title>
         <RadioButton.Group onValueChange={setSelectedWinner} value={selectedWinner}>
           <View style={styles.radioRow}>
-            <RadioButton value={boxer1.id} />
-            <Text>{boxer1.name}</Text>
-            <RadioButton value={boxer2.id} />
-            <Text>{boxer2.name}</Text>
+            <RadioButton value={boxer1.fighter_id || boxer1.id} />
+            <Text>{boxer1.full_name || boxer1.name}</Text>
+            <RadioButton value={boxer2.fighter_id || boxer2.id} />
+            <Text>{boxer2.full_name || boxer2.name}</Text>
           </View>
         </RadioButton.Group>
         <Title style={styles.selectTitle}>Method</Title>
@@ -115,4 +109,5 @@ const styles = StyleSheet.create({
   selectTitle: { fontSize: 18, marginBottom: 8 },
   radioRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   button: { marginTop: 16 },
+  link: { color: '#1976d2', textDecorationLine: 'underline' },
 });

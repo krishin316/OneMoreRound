@@ -1,36 +1,24 @@
-import React, { useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Card, Paragraph, Title } from 'react-native-paper';
-import { getAllPredictions, getLastPredictions, initPredictionTable } from '../src/services/PredictionDB';
-
-type Prediction = {
-  id?: number;
-  fight: string;
-  pick: string;
-  method: string;
-  result: string;
-  created_at?: string;
-};
+import { getAllPredictions, getLastPredictions, Prediction } from '../src/services/PredictionStorage';
 
 export default function MyPredictionsScreen() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [accuracy, setAccuracy] = useState<number>(0);
 
-  // Table initialization now happens once in App.js
-
   useFocusEffect(
     React.useCallback(() => {
       getLastPredictions(5)
         .then((data: Prediction[]) => {
-          console.log('Last 5 predictions:', data);
           setPredictions(data);
         })
         .catch(e => console.log('Error loading predictions:', e));
       getAllPredictions()
         .then((all: Prediction[]) => {
           if (!all.length) return setAccuracy(0);
-          const correct = all.filter((p: Prediction) => p.result === 'Win').length;
+          const correct = all.filter((p: Prediction) => p.result && p.pick === p.result).length;
           setAccuracy(Math.round((correct / all.length) * 100));
         })
         .catch(e => console.log('Error loading all predictions:', e));
@@ -50,18 +38,14 @@ export default function MyPredictionsScreen() {
           No predictions found. Make a prediction to see it here.
         </Paragraph>
       ) : (
-        predictions.map((pred, idx) => (
-          <Card key={pred.id || idx} style={{ marginBottom: 16, elevation: 2 }}>
+        predictions.map((p, idx) => (
+          <Card key={idx} style={{ marginVertical: 8 }}>
             <Card.Content>
-              <Title style={{ fontSize: 20, marginBottom: 4 }}>
-                {pred.fight}
-              </Title>
-              <Paragraph style={{ fontSize: 16, color: '#555' }}>
-                Your pick: {pred.pick} by {pred.method}
-              </Paragraph>
-              <Paragraph style={{ fontSize: 16, color: '#555' }}>
-                Result: {pred.result || 'Pending'}
-              </Paragraph>
+              <Title>{p.fight}</Title>
+              <Paragraph>Pick: {p.pick}</Paragraph>
+              <Paragraph>Method: {p.method}</Paragraph>
+              <Paragraph>Result: {p.result || 'Pending'}</Paragraph>
+              <Paragraph>Date: {p.created_at ? new Date(p.created_at).toLocaleString() : ''}</Paragraph>
             </Card.Content>
           </Card>
         ))
